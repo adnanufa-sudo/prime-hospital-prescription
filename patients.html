@@ -1,1 +1,839 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Prime Hospital - Patients</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>body{font:14px Arial;margin:0;background:#f4f7fb;color:#172033}.wrap{max-width:1100px;margin:20px auto;padding:20px;background:#fff;border-radius:12px}.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.btn{padding:9px 13px;border-radius:6px;border:1px solid #123d88;background:#fff;color:#123d88;font-weight:bold;cursor:pointer}.primary{background:#123d88;color:#fff}.danger{color:#b42318;border-color:#b42318}.search{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin:18px 0}.search input{padding:10px;border:1px solid #cfd7e3;border-radius:6px}.card{border:1px solid #dfe5ee;border-radius:9px;padding:14px;margin:10px 0}.muted{color:#667085;font-size:12px}.visit{border-top:1px solid #dfe5ee;padding:12px 0}.rx{margin-top:8px;padding-left:14px}@media(max-width:700px){.search{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}}</style></head><body><main class="wrap"><div class="top"><div><h1 style="color:#123d88;margin:0">PRIME HOSPITAL</h1><div>Patient Search & History</div></div><div><a class="btn" href="/app-v2.html">New Consultation</a> <button class="btn" onclick="logout()">Logout</button></div></div><div id="status" class="muted" style="margin-top:10px"></div><div id="searchArea" class="card" style="display:none"><h2 style="color:#123d88">Find Patient</h2><div class="search"><input id="qname" placeholder="Patient name"><input id="qmobile" placeholder="Mobile number"><input id="quid" placeholder="UHID / Patient ID"><button class="btn primary" onclick="searchPatients()">Search</button></div><div id="results"></div></div><div id="history" class="card" style="display:none"></div></main><script>const SB_URL='https://prcvzefynoiuneybufge.supabase.co';const SB_KEY='sb_publishable_JbxZuf181uR8zbmTyyfFiA_2pLjsq0C';const sb=supabase.createClient(SB_URL,SB_KEY);const $=x=>document.getElementById(x);function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}async function init(){let {data}=await sb.auth.getSession();if(!data.session){location.href='/app-v2.html';return}$('searchArea').style.display='block'}async function logout(){await sb.auth.signOut();location.href='/app-v2.html'}async function searchPatients(){let {data:{user}}=await sb.auth.getUser();if(!user)return;let qn=$('qname').value.trim(),qm=$('qmobile').value.trim(),qi=$('quid').value.trim();let q=sb.from('patients').select('*').eq('doctor_id',user.id).order('name');if(qn)q=q.ilike('name','%'+qn+'%');if(qm)q=q.ilike('mobile','%'+qm+'%');if(qi)q=q.ilike('patient_id','%'+qi+'%');let {data,error}=await q.limit(50);if(error){$('results').innerHTML='<p>'+esc(error.message)+'</p>';return}if(!data.length){$('results').innerHTML='<p class="muted">No patient found.</p>';return}$('results').innerHTML=data.map(p=>`<div class="card"><b>${esc(p.name)}</b><div class="muted">UHID: ${esc(p.patient_id||'—')} • Age: ${esc(p.age||'—')} • ${esc(p.gender||'')} • Mobile: ${esc(p.mobile||'—')}</div><button class="btn primary" style="margin-top:8px" onclick="showHistory('${p.id}')">View Previous Visits</button></div>`).join('')}async function showHistory(pid){let {data:{user}}=await sb.auth.getUser();let p=await sb.from('patients').select('*').eq('id',pid).eq('doctor_id',user.id).single();if(p.error)return;let v=await sb.from('visits').select('*').eq('patient_id',pid).eq('doctor_id',user.id).order('visit_date',{ascending:false});if(v.error){$('history').innerHTML='<p>'+esc(v.error.message)+'</p>';return}let ids=(v.data||[]).map(x=>x.id);let r=ids.length?await sb.from('prescriptions').select('*').in('visit_id',ids).order('sort_order'):({data:[]});let meds=r.data||[];$('history').style.display='block';$('history').innerHTML=`<h2 style="color:#123d88">${esc(p.data.name)} — History</h2><div class="muted">UHID: ${esc(p.data.patient_id||'—')} • ${esc(p.data.age||'')} • ${esc(p.data.gender||'')} • ${esc(p.data.mobile||'')}</div>`+(v.data||[]).map(x=>`<div class="visit"><b>Visit: ${esc(x.visit_date)}</b><div>BP: ${esc(x.bp||'—')} | Pulse: ${esc(x.pulse||'—')} | SpO₂: ${esc(x.spo2||'—')} | Weight: ${esc(x.weight||'—')} | Sugar: ${esc(x.blood_sugar||'—')}</div><div><b>Diagnosis:</b> ${esc(x.diagnosis||'—')}</div><div><b>Complaints:</b> ${esc(x.complaints||'—')}</div><div><b>Advice:</b> ${esc(x.advice||'—')}</div><div class="rx"><b>Medicines:</b><ul>`+meds.filter(m=>m.visit_id===x.id).map(m=>`<li>${esc(m.medicine_name)} ${esc(m.strength||'')} — ${esc(m.frequency||'')} — ${esc(m.duration||'')} — ${esc(m.instruction||'')}</li>`).join('')+`</ul></div></div>`).join('')||'<p class="muted">No previous visits.</p>';window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})}init();</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prime Hospital - Patient History</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  font:14px Arial;
+  margin:0;
+  background:#f4f7fb;
+  color:#172033;
+}
+
+.wrap{
+  max-width:1100px;
+  margin:20px auto;
+  padding:20px;
+  background:#fff;
+  border-radius:12px;
+}
+
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+}
+
+.btn{
+  padding:9px 13px;
+  border-radius:6px;
+  border:1px solid #123d88;
+  background:#fff;
+  color:#123d88;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.primary{
+  background:#123d88;
+  color:#fff;
+}
+
+.search{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr auto;
+  gap:8px;
+  margin:18px 0;
+}
+
+.search input{
+  padding:10px;
+  border:1px solid #cfd7e3;
+  border-radius:6px;
+}
+
+.card{
+  border:1px solid #dfe5ee;
+  border-radius:9px;
+  padding:14px;
+  margin:10px 0;
+}
+
+.patientHeader{
+  background:#eef4ff;
+  border:1px solid #cbd9f5;
+  border-radius:10px;
+  padding:18px;
+  margin-bottom:15px;
+}
+
+.patientName{
+  font-size:22px;
+  font-weight:bold;
+  color:#123d88;
+}
+
+.muted{
+  color:#667085;
+  font-size:12px;
+}
+
+.visit{
+  border:1px solid #dfe5ee;
+  border-radius:9px;
+  padding:15px;
+  margin:14px 0;
+  background:#fff;
+}
+
+.latest{
+  border:2px solid #123d88;
+  background:#f8fbff;
+}
+
+.visitTitle{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.latestBadge{
+  background:#123d88;
+  color:#fff;
+  padding:5px 8px;
+  border-radius:5px;
+  font-size:11px;
+  font-weight:bold;
+}
+
+.vitals{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
+  margin:12px 0;
+}
+
+.vital{
+  background:#f4f7fb;
+  border-radius:6px;
+  padding:9px;
+}
+
+.section{
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid #e5e7eb;
+}
+
+.sectionTitle{
+  font-weight:bold;
+  color:#123d88;
+  margin-bottom:5px;
+}
+
+.rx{
+  margin-top:8px;
+}
+
+.rx li{
+  margin:6px 0;
+}
+
+.empty{
+  color:#667085;
+  padding:10px 0;
+}
+
+.actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:12px 0;
+}
+
+@media(max-width:700px){
+  .search{
+    grid-template-columns:1fr;
+  }
+
+  .top{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .vitals{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .visitTitle{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+}
+
+@media print{
+  body{
+    background:#fff;
+  }
+
+  .wrap{
+    max-width:none;
+    margin:0;
+    padding:10px;
+  }
+
+  .noPrint{
+    display:none !important;
+  }
+
+  .card{
+    border:none;
+  }
+
+  .visit{
+    break-inside:avoid;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<main class="wrap">
+
+<div class="top noPrint">
+  <div>
+    <h1 style="color:#123d88;margin:0">PRIME HOSPITAL</h1>
+    <div>Patient Search & Complete History</div>
+  </div>
+
+  <div>
+    <a class="btn" href="/app-v2.html">New Consultation</a>
+    <button class="btn" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<div id="status" class="muted" style="margin-top:10px"></div>
+
+<!-- SEARCH -->
+
+<div id="searchArea" class="card noPrint" style="display:none">
+
+  <h2 style="color:#123d88">Find Patient</h2>
+
+  <div class="search">
+
+    <input
+      id="qname"
+      placeholder="Patient name"
+    >
+
+    <input
+      id="qmobile"
+      placeholder="Mobile number"
+    >
+
+    <input
+      id="quid"
+      placeholder="UHID / Patient ID"
+    >
+
+    <button
+      class="btn primary"
+      onclick="searchPatients()"
+    >
+      Search
+    </button>
+
+  </div>
+
+  <div id="results"></div>
+
+</div>
+
+
+<!-- HISTORY -->
+
+<div
+  id="history"
+  class="card"
+  style="display:none"
+>
+</div>
+
+</main>
+
+
+<script>
+
+const SB_URL =
+'https://prcvzefynoiuneybufge.supabase.co';
+
+const SB_KEY =
+'sb_publishable_JbxZuf181uR8zbmTyyfFiA_2pLjsq0C';
+
+const sb =
+supabase.createClient(SB_URL,SB_KEY);
+
+
+const $ = x =>
+document.getElementById(x);
+
+
+function esc(s){
+
+  return String(s ?? '')
+    .replace(
+      /[&<>"']/g,
+      m => ({
+        '&':'&amp;',
+        '<':'&lt;',
+        '>':'&gt;',
+        '"':'&quot;',
+        "'":'&#39;'
+      }[m])
+    );
+
+}
+
+
+async function init(){
+
+  let {data,error} =
+    await sb.auth.getSession();
+
+  if(error || !data.session){
+
+    location.href='/app-v2.html';
+
+    return;
+  }
+
+  $('searchArea').style.display='block';
+
+}
+
+
+async function logout(){
+
+  await sb.auth.signOut();
+
+  location.href='/app-v2.html';
+
+}
+
+
+async function searchPatients(){
+
+  let {
+    data:{user}
+  } = await sb.auth.getUser();
+
+  if(!user) return;
+
+
+  let qn =
+    $('qname').value.trim();
+
+  let qm =
+    $('qmobile').value.trim();
+
+  let qi =
+    $('quid').value.trim();
+
+
+  if(!qn && !qm && !qi){
+
+    $('results').innerHTML =
+      '<p class="muted">Enter patient name, mobile number or UHID.</p>';
+
+    return;
+  }
+
+
+  let q =
+    sb
+      .from('patients')
+      .select('*')
+      .eq('doctor_id',user.id)
+      .order('name');
+
+
+  if(qn)
+    q=q.ilike(
+      'name',
+      '%'+qn+'%'
+    );
+
+  if(qm)
+    q=q.ilike(
+      'mobile',
+      '%'+qm+'%'
+    );
+
+  if(qi)
+    q=q.ilike(
+      'patient_id',
+      '%'+qi+'%'
+    );
+
+
+  let {
+    data,
+    error
+  } = await q.limit(50);
+
+
+  if(error){
+
+    $('results').innerHTML =
+      '<p>'+esc(error.message)+'</p>';
+
+    return;
+  }
+
+
+  if(!data.length){
+
+    $('results').innerHTML =
+      '<p class="muted">No patient found.</p>';
+
+    return;
+  }
+
+
+  $('results').innerHTML =
+    data.map(p => `
+
+      <div class="card">
+
+        <b>${esc(p.name)}</b>
+
+        <div class="muted">
+
+          UHID:
+          ${esc(p.patient_id || '—')}
+
+          • Age:
+          ${esc(p.age || '—')}
+
+          •
+          ${esc(p.gender || '')}
+
+          • Mobile:
+          ${esc(p.mobile || '—')}
+
+        </div>
+
+        <button
+          class="btn primary"
+          style="margin-top:8px"
+          onclick="showHistory('${p.id}')"
+        >
+          View Complete History
+        </button>
+
+      </div>
+
+    `).join('');
+
+}
+
+
+async function showHistory(pid){
+
+  $('history').style.display='block';
+
+  $('history').innerHTML =
+    '<p class="muted">Loading patient history...</p>';
+
+
+  let {
+    data:{user}
+  } = await sb.auth.getUser();
+
+
+  if(!user){
+
+    location.href='/app-v2.html';
+
+    return;
+  }
+
+
+  /* PATIENT */
+
+  let {
+    data:p,
+    error:patientError
+  } = await sb
+    .from('patients')
+    .select('*')
+    .eq('id',pid)
+    .eq('doctor_id',user.id)
+    .single();
+
+
+  if(patientError){
+
+    $('history').innerHTML =
+      '<p>'+esc(patientError.message)+'</p>';
+
+    return;
+  }
+
+
+  /* VISITS */
+
+  let {
+    data:visits,
+    error:visitError
+  } = await sb
+    .from('visits')
+    .select('*')
+    .eq('patient_id',pid)
+    .eq('doctor_id',user.id)
+    .order(
+      'visit_date',
+      {ascending:false}
+    );
+
+
+  if(visitError){
+
+    $('history').innerHTML =
+      '<p>'+esc(visitError.message)+'</p>';
+
+    return;
+  }
+
+
+  visits = visits || [];
+
+
+  /* PRESCRIPTIONS */
+
+  let ids =
+    visits.map(x => x.id);
+
+
+  let meds=[];
+
+
+  if(ids.length){
+
+    let {
+      data,
+      error
+    } = await sb
+      .from('prescriptions')
+      .select('*')
+      .in('visit_id',ids)
+      .order('sort_order');
+
+
+    if(!error)
+      meds=data || [];
+
+  }
+
+
+  /* PATIENT HEADER */
+
+  let html = `
+
+    <div class="patientHeader">
+
+      <div class="patientName">
+        ${esc(p.name)}
+      </div>
+
+      <div style="margin-top:6px">
+
+        <b>UHID:</b>
+        ${esc(p.patient_id || '—')}
+
+        &nbsp; | &nbsp;
+
+        <b>Age:</b>
+        ${esc(p.age || '—')}
+
+        &nbsp; | &nbsp;
+
+        <b>Gender:</b>
+        ${esc(p.gender || '—')}
+
+        &nbsp; | &nbsp;
+
+        <b>Mobile:</b>
+        ${esc(p.mobile || '—')}
+
+      </div>
+
+    </div>
+
+
+    <div class="actions noPrint">
+
+      <button
+        class="btn"
+        onclick="backToSearch()"
+      >
+        ← Back to Search
+      </button>
+
+      <button
+        class="btn primary"
+        onclick="window.print()"
+      >
+        Print Patient History
+      </button>
+
+    </div>
+
+  `;
+
+
+  if(!visits.length){
+
+    html += `
+      <div class="empty">
+        No previous visits found for this patient.
+      </div>
+    `;
+
+    $('history').innerHTML=html;
+
+    return;
+  }
+
+
+  /* VISITS */
+
+  html += `
+
+    <h2 style="color:#123d88">
+      Complete Visit History
+    </h2>
+
+  `;
+
+
+  visits.forEach((x,index)=>{
+
+    let visitMeds =
+      meds.filter(
+        m => m.visit_id === x.id
+      );
+
+
+    let latest =
+      index === 0;
+
+
+    html += `
+
+      <div class="visit ${latest ? 'latest' : ''}">
+
+        <div class="visitTitle">
+
+          <div>
+
+            <b>
+              Visit Date:
+              ${esc(x.visit_date || '—')}
+            </b>
+
+          </div>
+
+          ${
+            latest
+            ?
+            '<span class="latestBadge">LATEST VISIT</span>'
+            :
+            ''
+          }
+
+        </div>
+
+
+        <!-- VITALS -->
+
+        <div class="vitals">
+
+          <div class="vital">
+            <div class="muted">BP</div>
+            <b>${esc(x.bp || '—')}</b>
+          </div>
+
+          <div class="vital">
+            <div class="muted">Pulse</div>
+            <b>${esc(x.pulse || '—')}</b>
+          </div>
+
+          <div class="vital">
+            <div class="muted">SpO₂</div>
+            <b>${esc(x.spo2 || '—')}</b>
+          </div>
+
+          <div class="vital">
+            <div class="muted">Weight</div>
+            <b>${esc(x.weight || '—')}</b>
+          </div>
+
+          <div class="vital">
+            <div class="muted">Sugar</div>
+            <b>${esc(x.blood_sugar || '—')}</b>
+          </div>
+
+        </div>
+
+
+        <!-- COMPLAINTS -->
+
+        <div class="section">
+
+          <div class="sectionTitle">
+            Complaints
+          </div>
+
+          <div>
+            ${esc(x.complaints || '—')}
+          </div>
+
+        </div>
+
+
+        <!-- DIAGNOSIS -->
+
+        <div class="section">
+
+          <div class="sectionTitle">
+            Diagnosis
+          </div>
+
+          <div>
+            ${esc(x.diagnosis || '—')}
+          </div>
+
+        </div>
+
+
+        <!-- ADVICE -->
+
+        <div class="section">
+
+          <div class="sectionTitle">
+            Advice / Treatment
+          </div>
+
+          <div>
+            ${esc(x.advice || '—')}
+          </div>
+
+        </div>
+
+
+        <!-- MEDICINES -->
+
+        <div class="section">
+
+          <div class="sectionTitle">
+            Medicines Prescribed
+          </div>
+
+          ${
+            visitMeds.length
+            ?
+
+            `<ol class="rx">
+              ${
+                visitMeds.map(m => `
+
+                  <li>
+
+                    <b>
+                      ${esc(m.medicine_name || '')}
+                    </b>
+
+                    ${esc(m.strength || '')}
+
+                    ${
+                      m.frequency
+                      ?
+                      ' — '+esc(m.frequency)
+                      :
+                      ''
+                    }
+
+                    ${
+                      m.duration
+                      ?
+                      ' — '+esc(m.duration)
+                      :
+                      ''
+                    }
+
+                    ${
+                      m.instruction
+                      ?
+                      ' — '+esc(m.instruction)
+                      :
+                      ''
+                    }
+
+                  </li>
+
+                `).join('')
+              }
+            </ol>`
+
+            :
+
+            '<div class="muted">No medicines recorded.</div>'
+          }
+
+        </div>
+
+      </div>
+
+    `;
+
+  });
+
+
+  $('history').innerHTML=html;
+
+  window.scrollTo({
+    top:document.body.scrollHeight,
+    behavior:'smooth'
+  });
+
+}
+
+
+function backToSearch(){
+
+  $('history').style.display='none';
+
+  $('results').scrollIntoView({
+    behavior:'smooth'
+  });
+
+}
+
+
+init();
+
+</script>
+
+</body>
+</html>
