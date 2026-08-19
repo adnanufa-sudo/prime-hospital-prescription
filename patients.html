@@ -160,6 +160,7 @@ body{
 }
 
 @media(max-width:700px){
+
   .search{
     grid-template-columns:1fr;
   }
@@ -180,6 +181,7 @@ body{
 }
 
 @media print{
+
   body{
     background:#fff;
   }
@@ -210,24 +212,50 @@ body{
 <main class="wrap">
 
 <div class="top noPrint">
+
   <div>
-    <h1 style="color:#123d88;margin:0">PRIME HOSPITAL</h1>
-    <div>Patient Search & Complete History</div>
+    <h1 style="color:#123d88;margin:0">
+      PRIME HOSPITAL
+    </h1>
+
+    <div>
+      Patient Search & Complete History
+    </div>
   </div>
 
   <div>
-    <a class="btn" href="/app-v2.html">New Consultation</a>
-    <button class="btn" onclick="logout()">Logout</button>
+
+    <a class="btn" href="/app-v2.html">
+      New Consultation
+    </a>
+
+    <button class="btn" onclick="logout()">
+      Logout
+    </button>
+
   </div>
+
 </div>
 
-<div id="status" class="muted" style="margin-top:10px"></div>
+
+<div
+  id="status"
+  class="muted"
+  style="margin-top:10px"
+></div>
+
 
 <!-- SEARCH -->
 
-<div id="searchArea" class="card noPrint" style="display:none">
+<div
+  id="searchArea"
+  class="card noPrint"
+  style="display:none"
+>
 
-  <h2 style="color:#123d88">Find Patient</h2>
+  <h2 style="color:#123d88">
+    Find Patient
+  </h2>
 
   <div class="search">
 
@@ -266,8 +294,8 @@ body{
   id="history"
   class="card"
   style="display:none"
->
-</div>
+></div>
+
 
 </main>
 
@@ -284,9 +312,18 @@ const sb =
 supabase.createClient(SB_URL,SB_KEY);
 
 
+/* PRINT DATA */
+
+let patientForPrint = null;
+let visitsForPrint = [];
+let medicinesForPrint = [];
+
+
 const $ = x =>
 document.getElementById(x);
 
+
+/* ESCAPE HTML */
 
 function esc(s){
 
@@ -305,10 +342,14 @@ function esc(s){
 }
 
 
+/* INITIALIZE */
+
 async function init(){
 
-  let {data,error} =
-    await sb.auth.getSession();
+  let {
+    data,
+    error
+  } = await sb.auth.getSession();
 
   if(error || !data.session){
 
@@ -322,6 +363,8 @@ async function init(){
 }
 
 
+/* LOGOUT */
+
 async function logout(){
 
   await sb.auth.signOut();
@@ -330,6 +373,8 @@ async function logout(){
 
 }
 
+
+/* SEARCH PATIENTS */
 
 async function searchPatients(){
 
@@ -367,23 +412,34 @@ async function searchPatients(){
       .order('name');
 
 
-  if(qn)
+  if(qn){
+
     q=q.ilike(
       'name',
       '%'+qn+'%'
     );
 
-  if(qm)
+  }
+
+
+  if(qm){
+
     q=q.ilike(
       'mobile',
       '%'+qm+'%'
     );
 
-  if(qi)
+  }
+
+
+  if(qi){
+
     q=q.ilike(
       'patient_id',
       '%'+qi+'%'
     );
+
+  }
 
 
   let {
@@ -411,6 +467,7 @@ async function searchPatients(){
 
 
   $('results').innerHTML =
+
     data.map(p => `
 
       <div class="card">
@@ -433,6 +490,7 @@ async function searchPatients(){
 
         </div>
 
+
         <button
           class="btn primary"
           style="margin-top:8px"
@@ -447,6 +505,8 @@ async function searchPatients(){
 
 }
 
+
+/* SHOW COMPLETE HISTORY */
 
 async function showHistory(pid){
 
@@ -525,7 +585,7 @@ async function showHistory(pid){
     visits.map(x => x.id);
 
 
-  let meds=[];
+  let meds = [];
 
 
   if(ids.length){
@@ -540,10 +600,27 @@ async function showHistory(pid){
       .order('sort_order');
 
 
-    if(!error)
-      meds=data || [];
+    if(error){
+
+      $('history').innerHTML =
+        '<p>'+esc(error.message)+'</p>';
+
+      return;
+    }
+
+
+    meds = data || [];
 
   }
+
+
+  /* SAVE DATA FOR PRINT */
+
+  patientForPrint = p;
+
+  visitsForPrint = visits;
+
+  medicinesForPrint = meds;
 
 
   /* PATIENT HEADER */
@@ -555,6 +632,7 @@ async function showHistory(pid){
       <div class="patientName">
         ${esc(p.name)}
       </div>
+
 
       <div style="margin-top:6px">
 
@@ -590,6 +668,7 @@ async function showHistory(pid){
         ← Back to Search
       </button>
 
+
       <button
         class="btn primary"
         onclick="window.print()"
@@ -602,12 +681,16 @@ async function showHistory(pid){
   `;
 
 
+  /* NO VISITS */
+
   if(!visits.length){
 
     html += `
+
       <div class="empty">
         No previous visits found for this patient.
       </div>
+
     `;
 
     $('history').innerHTML=html;
@@ -616,7 +699,7 @@ async function showHistory(pid){
   }
 
 
-  /* VISITS */
+  /* HISTORY TITLE */
 
   html += `
 
@@ -626,6 +709,8 @@ async function showHistory(pid){
 
   `;
 
+
+  /* EACH VISIT */
 
   visits.forEach((x,index)=>{
 
@@ -641,7 +726,10 @@ async function showHistory(pid){
 
     html += `
 
-      <div class="visit ${latest ? 'latest' : ''}">
+      <div
+        class="visit ${latest ? 'latest' : ''}"
+      >
+
 
         <div class="visitTitle">
 
@@ -653,6 +741,7 @@ async function showHistory(pid){
             </b>
 
           </div>
+
 
           ${
             latest
@@ -674,20 +763,24 @@ async function showHistory(pid){
             <b>${esc(x.bp || '—')}</b>
           </div>
 
+
           <div class="vital">
             <div class="muted">Pulse</div>
             <b>${esc(x.pulse || '—')}</b>
           </div>
+
 
           <div class="vital">
             <div class="muted">SpO₂</div>
             <b>${esc(x.spo2 || '—')}</b>
           </div>
 
+
           <div class="vital">
             <div class="muted">Weight</div>
             <b>${esc(x.weight || '—')}</b>
           </div>
+
 
           <div class="vital">
             <div class="muted">Sugar</div>
@@ -750,11 +843,13 @@ async function showHistory(pid){
             Medicines Prescribed
           </div>
 
+
           ${
             visitMeds.length
             ?
 
             `<ol class="rx">
+
               ${
                 visitMeds.map(m => `
 
@@ -794,14 +889,31 @@ async function showHistory(pid){
 
                 `).join('')
               }
+
             </ol>`
 
             :
 
             '<div class="muted">No medicines recorded.</div>'
+
           }
 
         </div>
+
+
+        <!-- PRINT BUTTON -->
+
+        <div class="actions noPrint">
+
+          <button
+            class="btn primary"
+            onclick="printVisit('${x.id}')"
+          >
+            View / Print Prescription
+          </button>
+
+        </div>
+
 
       </div>
 
@@ -812,6 +924,7 @@ async function showHistory(pid){
 
   $('history').innerHTML=html;
 
+
   window.scrollTo({
     top:document.body.scrollHeight,
     behavior:'smooth'
@@ -819,6 +932,8 @@ async function showHistory(pid){
 
 }
 
+
+/* BACK TO SEARCH */
 
 function backToSearch(){
 
@@ -830,6 +945,412 @@ function backToSearch(){
 
 }
 
+
+/* PRINT INDIVIDUAL PRESCRIPTION */
+
+function printVisit(visitId){
+
+  const visit =
+    visitsForPrint.find(
+      v => v.id === visitId
+    );
+
+
+  if(!visit){
+
+    alert('Visit details not found.');
+
+    return;
+  }
+
+
+  const patient =
+    patientForPrint;
+
+
+  const medicines =
+    medicinesForPrint.filter(
+      m => m.visit_id === visitId
+    );
+
+
+  const medicineRows =
+
+    medicines.length
+
+    ?
+
+    medicines.map((m,i)=>`
+
+      <tr>
+
+        <td>
+          ${i+1}
+        </td>
+
+        <td>
+
+          <b>
+            ${esc(m.medicine_name || '')}
+          </b>
+
+          ${esc(m.strength || '')}
+
+        </td>
+
+        <td>
+          ${esc(m.frequency || '—')}
+        </td>
+
+        <td>
+          ${esc(m.duration || '—')}
+        </td>
+
+        <td>
+          ${esc(m.instruction || '—')}
+        </td>
+
+      </tr>
+
+    `).join('')
+
+
+    :
+
+    `
+
+      <tr>
+
+        <td colspan="5">
+          No medicines recorded.
+        </td>
+
+      </tr>
+
+    `;
+
+
+  const w = window.open(
+    '',
+    '_blank',
+    'width=900,height=700'
+  );
+
+
+  if(!w){
+
+    alert(
+      'Please allow pop-ups for the Prime Hospital website.'
+    );
+
+    return;
+  }
+
+
+  w.document.write(`
+
+<!doctype html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8">
+
+<title>
+Prime Hospital Prescription
+</title>
+
+
+<style>
+
+body{
+  font-family:Arial,sans-serif;
+  margin:30px;
+  color:#172033;
+}
+
+.header{
+  text-align:center;
+  border-bottom:2px solid #123d88;
+  padding-bottom:12px;
+}
+
+.header h1{
+  margin:0;
+  color:#123d88;
+  font-size:28px;
+}
+
+.header div{
+  margin-top:5px;
+}
+
+.patient{
+  margin-top:20px;
+  border:1px solid #ccc;
+  padding:12px;
+}
+
+.section{
+  margin-top:18px;
+}
+
+.section h3{
+  color:#123d88;
+  border-bottom:1px solid #ddd;
+  padding-bottom:5px;
+}
+
+.vitals{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
+}
+
+.vital{
+  border:1px solid #ddd;
+  padding:8px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+}
+
+th,
+td{
+  border:1px solid #bbb;
+  padding:8px;
+  text-align:left;
+}
+
+th{
+  background:#f1f4f8;
+}
+
+.footer{
+  margin-top:60px;
+  text-align:right;
+}
+
+.printButton{
+  padding:10px 18px;
+  margin-bottom:20px;
+}
+
+@media print{
+
+  .printButton{
+    display:none;
+  }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<button
+  class="printButton"
+  onclick="window.print()"
+>
+Print Prescription
+</button>
+
+
+<div class="header">
+
+  <h1>
+    PRIME HOSPITAL
+  </h1>
+
+  <div>
+    Quality Treatment
+  </div>
+
+  <div>
+    Patient Prescription
+  </div>
+
+</div>
+
+
+<div class="patient">
+
+  <b>Patient:</b>
+  ${esc(patient.name || '—')}
+
+  &nbsp;&nbsp;&nbsp;
+
+  <b>UHID:</b>
+  ${esc(patient.patient_id || '—')}
+
+  <br><br>
+
+  <b>Age:</b>
+  ${esc(patient.age || '—')}
+
+  &nbsp;&nbsp;&nbsp;
+
+  <b>Gender:</b>
+  ${esc(patient.gender || '—')}
+
+  &nbsp;&nbsp;&nbsp;
+
+  <b>Mobile:</b>
+  ${esc(patient.mobile || '—')}
+
+  <br><br>
+
+  <b>Visit Date:</b>
+  ${esc(visit.visit_date || '—')}
+
+</div>
+
+
+<div class="section">
+
+  <h3>
+    Vitals
+  </h3>
+
+
+  <div class="vitals">
+
+    <div class="vital">
+      <b>BP</b><br>
+      ${esc(visit.bp || '—')}
+    </div>
+
+    <div class="vital">
+      <b>Pulse</b><br>
+      ${esc(visit.pulse || '—')}
+    </div>
+
+    <div class="vital">
+      <b>SpO₂</b><br>
+      ${esc(visit.spo2 || '—')}
+    </div>
+
+    <div class="vital">
+      <b>Weight</b><br>
+      ${esc(visit.weight || '—')}
+    </div>
+
+    <div class="vital">
+      <b>Sugar</b><br>
+      ${esc(visit.blood_sugar || '—')}
+    </div>
+
+  </div>
+
+</div>
+
+
+<div class="section">
+
+  <h3>
+    Complaints
+  </h3>
+
+  ${esc(visit.complaints || '—')}
+
+</div>
+
+
+<div class="section">
+
+  <h3>
+    Diagnosis
+  </h3>
+
+  ${esc(visit.diagnosis || '—')}
+
+</div>
+
+
+<div class="section">
+
+  <h3>
+    Medicines
+  </h3>
+
+
+  <table>
+
+    <thead>
+
+      <tr>
+
+        <th>No.</th>
+
+        <th>Medicine</th>
+
+        <th>Frequency</th>
+
+        <th>Duration</th>
+
+        <th>Instructions</th>
+
+      </tr>
+
+    </thead>
+
+
+    <tbody>
+
+      ${medicineRows}
+
+    </tbody>
+
+  </table>
+
+</div>
+
+
+<div class="section">
+
+  <h3>
+    Advice / Treatment
+  </h3>
+
+  ${esc(visit.advice || '—')}
+
+</div>
+
+
+<div class="footer">
+
+  <b>
+    Doctor
+  </b>
+
+  <br><br>
+
+  ________________________
+
+</div>
+
+
+</body>
+
+</html>
+
+  `);
+
+
+  w.document.close();
+
+}
+
+
+/* START APP */
 
 init();
 
