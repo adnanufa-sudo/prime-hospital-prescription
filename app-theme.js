@@ -1,4 +1,4 @@
-/* Prime Hospital low-glare dark clinical theme + offline-first bootstrap + free drug bank */
+/* Prime Hospital low-glare dark clinical theme + offline-first bootstrap + free drug bank + keyboard navigation */
 (function(){
 const css=`:root{--bg:#090d14;--panel:#101722;--panel2:#0c121c;--panel3:#151e2b;--text:#d8e2ee;--muted:#8b9aab;--line:#263447;--line2:#33445b;--cyan:#48d7e8;--focus:#71e4ff;--shadow:0 8px 28px rgba(0,0,0,.28)}
 html,body{background:var(--bg)!important;color:var(--text)!important}body{font-family:Arial,sans-serif}body:before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 15% 0%,rgba(72,215,232,.035),transparent 34%),radial-gradient(circle at 90% 20%,rgba(108,140,255,.035),transparent 32%);z-index:-1}
@@ -11,10 +11,12 @@ html,body{background:var(--bg)!important;color:var(--text)!important}body{font-f
 @media(max-width:800px){.card{box-shadow:0 5px 18px rgba(0,0,0,.25)!important}}@media print{html,body{background:#fff!important;color:#111!important}.appscreen,.modal,#login{display:none!important}.printsheet{color:#111!important}}`;
 const style=document.createElement('style');style.id='prime-low-glare-theme';style.textContent=css;document.head.appendChild(style);
 function status(){let x=document.getElementById('offlineStatus');if(!x){x=document.createElement('div');x.id='offlineStatus';x.textContent=navigator.onLine?'ONLINE':'OFFLINE';const h=document.querySelector('#app header .head')||document.querySelector('#app header');if(h)h.appendChild(x)}if(window.PrimeData?.showOfflineStatus)window.PrimeData.showOfflineStatus()}
-function loadOffline(){if(document.getElementById('prime-offline-loader'))return;const s=document.createElement('script');s.id='prime-offline-loader';s.src='/offline-db.js';s.onload=()=>{status();loadDrugBank();loadDrugBankBridge()};document.head.appendChild(s)}
-function loadDrugBank(){if(document.getElementById('prime-drug-bank-loader'))return;const s=document.createElement('script');s.id='prime-drug-bank-loader';s.src='/prime-drug-bank.js';document.head.appendChild(s)}
-function loadDrugBankBridge(){if(document.getElementById('prime-drug-bank-bridge'))return;const s=document.createElement('script');s.id='prime-drug-bank-bridge';s.src='/prime-drug-bank-bridge.js';document.head.appendChild(s)}
+function loadScript(id,src){if(document.getElementById(id))return;const s=document.createElement('script');s.id=id;s.src=src;document.head.appendChild(s)}
+function loadOffline(){if(document.getElementById('prime-offline-loader'))return;const s=document.createElement('script');s.id='prime-offline-loader';s.src='/offline-db.js';s.onload=()=>{status();loadDrugBank();loadDrugBankBridge();loadKeyboard()};document.head.appendChild(s)}
+function loadDrugBank(){loadScript('prime-drug-bank-loader','/prime-drug-bank.js')}
+function loadDrugBankBridge(){loadScript('prime-drug-bank-bridge','/prime-drug-bank-bridge.js')}
+function loadKeyboard(){loadScript('prime-keyboard-loader','/prime-keyboard.js')}
 loadOffline();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
-window.addEventListener('online',status);window.addEventListener('offline',status);setTimeout(()=>{status();if(!navigator.onLine&&window.__primeOfflineOverrides&&window.showApp)window.showApp();loadDrugBank();loadDrugBankBridge()},1200);
+window.addEventListener('online',status);window.addEventListener('offline',status);setTimeout(()=>{status();if(!navigator.onLine&&window.__primeOfflineOverrides&&window.showApp)window.showApp();loadDrugBank();loadDrugBankBridge();loadKeyboard()},1200);
 })();
