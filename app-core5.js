@@ -11,6 +11,11 @@
   const cp=window.copyPrevious;if(cp&&!window._mgmt5Copy){window._mgmt5Copy=true;window.copyPrevious=async function(){await cp();try{let s=await session();if(currentPatient){let v=(await S.from('visits').select('id').eq('patient_id',currentPatient.id).eq('doctor_id',s.user.id).order('visit_date',{ascending:false}).limit(1).maybeSingle()).data;if(v)loadMgmtForVisit(v.id)}}catch(e){}}}
   const ap=window.applyTemplate;if(ap&&!window._mgmt5Tpl){window._mgmt5Tpl=true;window.applyTemplate=function(id){ap(id);setTimeout(()=>{const t=typeof templateData==='function'?templateData().find(x=>x.id===id):null;if(t?.management&&typeof window.setManagement==='function')window.setManagement(t.management)},0)}}
   const sv=window.saveVisitExtras;if(sv&&!window._mgmt5Save){window._mgmt5Save=true;window.saveVisitExtras=function(id){sv(id);const x=typeof getVisitExtras==='function'?getVisitExtras(id):{};x.management=readMgmt();localStorage.setItem('prime_visit_extras_'+id,JSON.stringify(x))}}
-  // Keep management quick-entry buttons out of the Tab sequence; inputs remain fully tab-navigable.
   document.addEventListener('keydown',e=>{if(e.key==='Tab'&&e.target.closest('#managementRows')){const controls=[...document.querySelectorAll('#consultView input,#consultView select,#consultView textarea')].filter(x=>!x.disabled&&x.tabIndex!==-1&&x.offsetParent!==null);const i=controls.indexOf(e.target);if(i>=0){e.preventDefault();(controls[e.shiftKey?i-1:i+1]||e.target).focus()}}});
+})();
+
+/* PRIME HOSPITAL V2 loader */
+(function(){
+  if(document.getElementById('primeV2Script'))return;
+  const s=document.createElement('script');s.id='primeV2Script';s.src='/app-core6.js';s.defer=true;document.body.appendChild(s);
 })();
