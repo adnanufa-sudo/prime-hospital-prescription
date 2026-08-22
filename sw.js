@@ -1,5 +1,5 @@
-const CACHE='prime-hospital-v3';
-const ASSETS=['/app-universal.html','/app-core1.js','/app-core2.js','/app-core3.js','/app-core4.js','/app-core5.js','/app-theme.js','/offline-db.js','/offline-overrides.js','/home.html'];
+const CACHE='prime-hospital-v4';
+const ASSETS=['/','/home.html','/app.html','/app-universal.html','/app-core1.js','/app-core2.js','/app-core3.js','/app-core4.js','/app-core5.js','/app-core6.js','/app-theme.js','/offline-db.js','/offline-overrides.js','/prime-drug-bank.js','/prime-drug-bank-bridge.js','/prime-keyboard.js','/manifest.webmanifest'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS).catch(()=>{})).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;const u=new URL(e.request.url);if(u.origin!==location.origin&&u.hostname!=='cdn.jsdelivr.net')return;e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(cache=>cache.put(e.request,copy)).catch(()=>{});return r}).catch(()=>u.origin===location.origin?caches.match('/app-universal.html'):Promise.reject(new Error('offline')))))});
