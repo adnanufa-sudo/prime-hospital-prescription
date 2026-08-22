@@ -1,0 +1,14 @@
+/* Prime Hospital V2 — low-glare dark clinical theme */
+:root{--bg:#0b1020;--panel:#11182b;--panel2:#151e34;--line:#263452;--text:#dbe6f7;--muted:#8795ad;--cyan:#55d6e8;--green:#63d6a2;--purple:#a88cff;--orange:#e7a765;--pink:#e789b8;--yellow:#d9c86c;--focus:#74e7f5}
+body.ph-v2{background:var(--bg)!important;color:var(--text)!important}
+.ph-v2 .head,.ph-v2 .card,.ph-v2 .panel,.ph-v2 .modal,.ph-v2 table,.ph-v2 .box{background:var(--panel)!important;border-color:var(--line)!important;color:var(--text)!important}
+.ph-v2 input,.ph-v2 select,.ph-v2 textarea{background:#0d1426!important;color:var(--text)!important;border:1px solid var(--line)!important}
+.ph-v2 input:focus,.ph-v2 select:focus,.ph-v2 textarea:focus{border-color:var(--focus)!important;outline:2px solid #74e7f533!important;box-shadow:none!important}
+.ph-v2 button,.ph-v2 .btn{border:1px solid var(--cyan)!important;background:#122338!important;color:var(--text)!important;border-radius:8px!important}
+.ph-v2 button:hover,.ph-v2 .btn:hover{filter:brightness(1.12)}
+.ph-v2 .primary{border-color:var(--green)!important;background:#123126!important}
+.ph-v2 .danger{border-color:var(--pink)!important;background:#321825!important}
+.ph-v2 .quick button:nth-child(4n+1){border-color:var(--cyan)!important}.ph-v2 .quick button:nth-child(4n+2){border-color:var(--green)!important}.ph-v2 .quick button:nth-child(4n+3){border-color:var(--purple)!important}.ph-v2 .quick button:nth-child(4n){border-color:var(--orange)!important}
+.ph-v2 .muted{color:var(--muted)!important}
+.ph-v2 ::selection{background:#55d6e844}
+.ph-v2 .tab-hint{font-size:11px;color:var(--muted);margin-left:8px}.ph-v2 .offline-badge{border:1px solid var(--orange);color:var(--orange);padding:3px 7px;border-radius:99px;font-size:11px}
