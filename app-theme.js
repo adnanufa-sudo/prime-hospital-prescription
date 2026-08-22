@@ -12,5 +12,5 @@ function status(){let x=document.getElementById('offlineStatus');if(!x){x=docume
 function loadOffline(){if(document.getElementById('prime-offline-loader'))return;const s=document.createElement('script');s.id='prime-offline-loader';s.src='/offline-db.js';s.onload=status;document.head.appendChild(s)}
 loadOffline();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
-window.addEventListener('online',status);window.addEventListener('offline',status);setTimeout(status,500);
+window.addEventListener('online',status);window.addEventListener('offline',status);setTimeout(()=>{status();if(!navigator.onLine&&window.__primeOfflineOverrides&&window.showApp)window.showApp()},1200);
 })();
